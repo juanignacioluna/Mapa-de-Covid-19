@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.13/css/all.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-extra-markers@1.0.6/dist/css/leaflet.extra-markers.min.css">
+  <title>COVID 19</title>
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <style>
+    #map { height: 100vh; width: 100hw; }
+    body{
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+
+  <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-extra-markers@1.0.6/src/assets/js/leaflet.extra-markers.min.js"></script>
+  <script>
+    
+    let map = L.map('map').setView([30,0],2);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    let treeMarker = L.ExtraMarkers.icon({
+        icon: 'fa-skull',
+        markerColor: 'red',
+        shape: 'circle',
+        prefix: 'fa'
+    })
+
+
+    fetch('https://covid19-newinntech.herokuapp.com/covid19/api/deaths/true/',{
+          method: 'GET',
+          headers: new Headers({})
+    })
+    .then(response4 => response4.json())
+    .then((data4) => {
+
+          console.log(data4);
+
+          var geojsonCovid19 = {
+            type: "FeatureCollection",
+            features: [],
+          };
+
+          for (i = 0; i < data4.length; i++) {
+
+            geojsonCovid19.features.push({
+              "type": "Feature",
+              "geometry": {
+                "type": "Point",
+                "coordinates": [data4[i].long, data4[i].lat]
+              },
+              "properties": {
+                "countryRegion": data4[i].countryRegion,
+                "lastUpdate": data4[i].lastUpdate,
+                "lat": data4[i].lat,
+                "long": data4[i].long,
+                "confirmed": data4[i].confirmed,
+                "deaths": data4[i].deaths,
+                "recovered": data4[i].recovered,
+                "active": data4[i].active,
+                "incidentRate": data4[i].incidentRate,
+                "peopleTested": data4[i].peopleTested,
+                "peopleHospitalized": data4[i].peopleHospitalized,
+                "mortalityRate": data4[i].mortalityRate,
+                "uid": data4[i].uid,
+                "iso3": data4[i].iso3,
+                "iso2": data4[i].iso2,
+              }
+            });
+          }
+
+          let geojsonlayer = L.geoJson(geojsonCovid19, {
+            onEachFeature: function(feature, layer) {
+
+              let unix_time = (feature.properties['lastUpdate']/1000);
+
+              var date = new Date(unix_time * 1000);
+
+              var hours = date.getHours();
+
+              var minutes = "0" + date.getMinutes();
+
+              var seconds = "0" + date.getSeconds();
+
+              var fecha = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+
+
+              layer.bindPopup(`<b>Informacion el reporte:</b><br><br>País:`
+              + feature.properties['countryRegion'] +
+              `<br>Confirmados:`+ feature.properties['confirmed'] +
+              `<br>Recuperados:`+ feature.properties['recovered'] +
+              `<br>Muertes:`+ feature.properties['deaths'] +
+              `<br>Activos:`+ feature.properties['active'] +
+              `<br>Última actualización: ` + fecha + " (Hora de Argentina)");
+
+              layer.setIcon(treeMarker);
+
+            }
+          }).addTo(map) 
+
+    });
+
+  </script>
+</body>
+</html>
